@@ -1,0 +1,125 @@
+#!/usr/bin/env ruby
+
+class Participants < Array
+
+  def initialize(participant = nil)
+    self << participant if participant
+  end
+
+  def to_s
+    self.join(",\n") + ';'
+  end
+end
+
+class Participant
+  def initialize(name, label = nil)
+    @name, @label = name, label
+  end
+
+  def label
+    @label.gsub('"', '\"')
+  end
+
+  def to_s
+    @name.dup.tap do |output|
+      output << " [label=\"#{label}\"]" if @label
+    end
+  end
+end
+
+class Note
+  def initialize(from, to = nil)
+    @from, @to, @note = from, to, []
+  end
+
+  def <<(line)
+    @note << line
+  end
+
+  def note
+    @note.join('\n').gsub('"', '\"')
+  end
+
+  def to_s
+    "#{@from} note #{@to} [label=\"#{note}\"];"
+    #, text.ident=right
+  end
+end
+
+class ArrowRight
+  def initialize(from, to, label = nil, dotted = false, open = false, start = false, ended = false)
+    @from, @to, @label, @dotted, @open, @start, @ended = from, to, label, dotted, open, start, ended
+  end
+
+  def arrow
+    if @dotted
+      ">>"
+    elsif @open
+      "=>>"
+    else
+      "=>"
+    end
+  end
+
+  def label
+    @label.gsub('"', '\"')
+  end
+
+  def to_s
+    "#{@from} #{arrow} #{@to}".dup.tap do |output|
+      output << " [label=\"#{label}\"]" if @label
+    end + ";"
+  end
+end
+
+# ------------------------------------------------------
+
+output = STDIN.map do |line|
+  line = line.strip
+
+  if @note
+    if line.include?("end note")
+      @note = nil
+    else
+      @note << line
+      nil
+    end
+
+  elsif match = line.match(/participant (?<label>\w+)(?: +as +(?<name>\w+))?/)
+    participant = Participant.new(match[:name], match[:label])
+    if @participants
+      @participants << participant
+      nil
+    else
+      @participants = Participants.new(participant)
+    end
+
+  elsif match = line.match(/note over (?<participant>[\w,]+):/)
+    participants = match[:participant].split(",")
+    @note = Note.new(participants.first, participants.last)
+
+  elsif match = line.match(/(?<from>\w+) *(?<dotted>-)?->(?<open>>)?(?<start>\+)?(?<end>-)? *(?<to>\w+): *(?<label>.+)?/)
+    ArrowRight.new(match[:from], match[:to], match[:label], match[:dotted], match[:open], match[:start], match[:end])
+
+  elsif line.match(/^#.+$/)
+    line
+
+  elsif line.match(/^ *$/)
+    ""
+
+  else
+    puts "unmatch: #{line}"
+    nil
+
+  end
+
+end.compact
+
+
+puts "msc {"
+
+output.each do |line|
+  puts line.to_s
+end
+
+puts "}"

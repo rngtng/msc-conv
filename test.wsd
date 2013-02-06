@@ -1,0 +1,134 @@
+# For a nice graphical representation copy&paste this to:
+# http://www.websequencediagrams.com/
+
+participant SoundCloudAPP as iOS
+participant Mothership as MS
+participant PaymentService as PS
+participant Buckster as B
+participant Apple as A
+
+
+#----------------------------------------------
+note over iOS,MS,PS,B,A:
+  IAP: retrieving the products
+end note
+#----------------------------------------------
+
+iOS ->  MS: GET: /products.json?category=apple
+MS  ->+ PS: find_products("apple")
+PS  ->  B:  GET: /api/products?category=apple
+B  -->  PS:
+note over PS,B:
+[
+  {permalink: "apple-solo-yearly", vendor_id: "apple.solo.yearly" },
+  {permalink: "apple-lite-yearly", vendor_id: "apple.lite.yearly" }
+]
+end note
+
+PS -->- MS: Array of Buckster::Product
+MS -->  iOS:
+note over iOS,MS:
+[
+  {kind: "product", id: "apple-solo-yearly", vendor_id: "apple.solo.yearly" },
+  {kind: "product", id: "apple-lite-yearly", vendor_id: "apple.lite.yearly" }
+]
+end note
+
+#----------------------------------------------
+note over iOS,MS,PS,B,A:
+  IAP: forward the receipt
+end note
+#----------------------------------------------
+
+iOS -> MS: POST: /me/orders.json
+note over iOS,MS:
+{
+  product_id: "apple-lite-yearly",
+  additional_data:
+  {
+    receipt_data: "SOME_BASE64_ENCODED_BLOB",
+    sandbox: "true"
+  }
+}
+end note
+
+MS ->+ PS: create_checkout("apple-lite-yearly", user, additional_data)
+
+PS -> B: POST: /api/checkout
+note over PS,B:
+{
+  product_permalink: "apple-lite-yearly",
+  user_id: 666,
+  user: {
+    email: "dummy@doo.wtf"
+    ...
+  },
+  billing_address: {},
+  additional_data: {
+    receipt_data: "SOME_BASE64_ENCODED_BLOB",
+    sandbox: "true"
+  }
+end note
+
+B ->> A: /verifyReceipt
+note over B,A:
+{
+  receipt-data: "SOME_BASE64_ENCODED_BLOB"
+}
+end note
+
+B --> PS:
+note over PS,B:
+{
+  order_reference: "refToken"
+}
+end note
+
+PS -->- MS: Object of Buckster::Checkout
+MS -->  iOS:
+note over iOS,MS:
+{
+  kind: "order",
+  id: "refToken",
+  state: "pending",
+}
+end note
+
+#----------------------------------------------
+note over iOS,MS,PS,B,A:
+  checking order status
+end note
+#----------------------------------------------
+
+iOS ->  MS: GET: /me/orders/<refToken>.json
+MS  ->+ PS: find_order("refToken")
+PS  ->  B:  GET: /api/orders/<refToken>
+B  -->  PS:
+note over PS,B:
+{
+  reference: "refToken",
+  state: "successful",
+  reason: "authorised",
+  buyer_id: 666,
+  product_permalink: "apple-lite-yearly",
+  created_at: "2012-12-12 12:12",
+  item: {
+    type: "AppleSubscription",
+    product_permalink": "apple-lite-yearly",
+    buyer_id: 666,
+    bought_at: "2012-12-12 12:12"
+  }
+}
+end note
+
+PS -->- MS: Object of Buckster::Order
+MS -->  iOS:
+note over MS,iOS:
+{
+  kind: "order",
+  id: "refToken"
+  state: "successful",
+  ...
+  (to be defined)
+}
+end note

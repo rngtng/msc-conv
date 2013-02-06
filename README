@@ -1,0 +1,4 @@
+
+cat test.wsd | ruby convert.rb
+
+(cat test.wsd | ruby convert.rb > test.msc && mscgen -T png test.msc && open test.png
