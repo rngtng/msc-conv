@@ -1,7 +1,6 @@
 #!/usr/bin/env ruby
 
 class Participants < Array
-
   def initialize(participant = nil)
     self << participant if participant
   end
@@ -113,13 +112,8 @@ output = STDIN.map do |line|
 
   end
 
-end.compact
-
-
-puts "msc {"
-
-output.each do |line|
-  puts line.to_s
 end
 
-puts "}"
+output = output.compact.map { |line| line.to_s }.join("\n").gsub("\n", "\n  ")
+
+puts "msc {\n  #{output}\n}"
