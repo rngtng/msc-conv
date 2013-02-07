@@ -36,12 +36,11 @@ class Note
   end
 
   def note
-    @note.join('\n').gsub('"', '\"')
+    @note.join('\n').gsub('{', '\{').gsub('}', '\}').gsub('[', '\[').gsub(']', '\]')
   end
 
   def to_s
-    "#{@from} note #{@to} [label=\"#{note}\"];"
-    #, text.ident=right
+    "#{@from}--#{@to}: #{note} [text.ident=left];"
   end
 end
 
@@ -65,8 +64,8 @@ class ArrowRight
   end
 
   def to_s
-    "#{@from} #{arrow} #{@to}".dup.tap do |output|
-      output << " [label=\"#{label}\"]" if @label
+    "#{@from} #{arrow} #{@to}:".dup.tap do |output|
+      output << " #{label}" if @label
     end + ";"
   end
 end
@@ -116,4 +115,5 @@ end
 
 output = output.compact.map { |line| line.to_s }.join("\n").gsub("\n", "\n  ")
 
-puts "msc {\n  #{output}\n}"
+#puts "msc {\n  #{output}\n}"
+puts output
